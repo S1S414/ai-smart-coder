@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI代码助手 - 管理员审核</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #F8F6FF;
+            --bg-secondary: #EDE9FE;
+            --purple-50: #FAF5FF;
+            --purple-100: #DDD6FE;
+            --purple-200: #C4B5FD;
+            --purple-300: #A78BFA;
+            --purple-400: #8B5CF6;
+            --purple-500: #7C3AED;
+            --purple-600: #6D28D9;
+            --success: #10B981;
+            --error: #EF4444;
+            --warning: #F59E0B;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--purple-100) 100%);
+            min-height: 100vh;
+        }
+
+        .login-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--purple-100) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(124, 58, 237, 0.25);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-icon {
+            width: 72px; height: 72px;
+            background: linear-gradient(135deg, #A78BFA, #7C3AED);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 16px;
+        }
+
+        .login-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1F1235;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            font-size: 14px;
+            color: #6B5B7A;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6B5B7A;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--purple-100);
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: var(--purple-50);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--purple-500);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            width: 100%;
+            padding: 16px;
+            font-size: 15px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #7C3AED, #6D28D9);
+        }
+
+        .btn-success {
+            background: #D1FAE5;
+            color: #059669;
+        }
+
+        .btn-success:hover {
+            background: #A7F3D0;
+        }
+
+        .btn-danger {
+            background: #FEE2E2;
+            color: #DC2626;
+        }
+
+        .btn-danger:hover {
+            background: #FECACA;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            width: auto;
+            font-size: 12px;
+        }
+
+        /* 主界面 */
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1F1235;
+        }
+
+        .header-subtitle {
+            font-size: 13px;
+            color: #6B5B7A;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.08);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--purple-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1F1235;
+        }
+
+        .card-content {
+            padding: 24px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--purple-50);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--purple-600);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--purple-400);
+            margin-top: 4px;
+        }
+
+        .pending-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .pending-item {
+            background: var(--purple-50);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid var(--purple-400);
+        }
+
+        .pending-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .pending-email {
+            font-weight: 600;
+            color: #1F1235;
+            font-size: 15px;
+        }
+
+        .pending-code {
+            background: var(--purple-200);
+            color: var(--purple-700);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .pending-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #6B5B7A;
+        }
+
+        .pending-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--purple-400);
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .alert-box {
+            background: #FEE2E2;
+            border: 1px solid #FECACA;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            color: #DC2626;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-box.success {
+            background: #D1FAE5;
+            border-color: #A7F3D0;
+            color: #059669;
+        }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                gap: 16px;
+            }
+            .pending-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录界面 -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-icon">🛡️</div>
+                <h1 class="login-title">管理员登录</h1>
+                <p class="login-subtitle">请输入管理员密码</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">管理员密码</label>
+                <input type="password" class="form-input" id="adminPassword" placeholder="请输入管理员密码">
+            </div>
+            <button class="btn btn-primary" onclick="adminLogin()">登录</button>
+            <div style="text-align:center;margin-top:16px;">
+                <a href="/" style="color:var(--purple-500);text-decoration:none;font-size:13px;">← 返回用户页面</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div class="admin-container hidden" id="adminContainer">
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">🛡️</div>
+                <div>
+                    <div class="header-title">管理员控制台</div>
+                    <div class="header-subtitle">AI代码助手访问管理</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-danger btn-small" onclick="emergencyStop()">🛑 紧急终止</button>
+                <button class="btn btn-success btn-small" onclick="resumeService()">▶️ 恢复服务</button>
+                <button class="btn btn-primary btn-small" onclick="refreshData()" style="width:auto;padding:8px 16px;">🔄 刷新</button>
+            </div>
+        </div>
+
+        <!-- 状态提示 -->
+        <div id="statusAlert" class="alert-box hidden"></div>
+
+        <!-- 统计卡片 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📊 系统状态</span>
+            </div>
+            <div class="card-content">
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-value" id="pendingCount">0</div>
+                        <div class="stat-label">待审批</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔑</div>
+                        <div class="stat-value" id="activeCount">0</div>
+                        <div class="stat-label">有效访问码</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🛑</div>
+                        <div class="stat-value" id="systemStatus">正常</div>
+                        <div class="stat-label">系统状态</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 待审批列表 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📋 待审批申请</span>
+                <button class="btn btn-primary btn-small" onclick="refreshData()" style="width:auto;">🔄 刷新列表</button>
+            </div>
+            <div class="card-content">
+                <div class="pending-list" id="pendingList">
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <p>暂无待审批的申请</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001/api';
+        let adminPassword = '';
+        let isEmergencyStop = false;
+
+        function adminLogin() {
+            const password = document.getElementById('adminPassword').value;
+            if (!password) {
+                alert('请输入管理员密码');
+                return;
+            }
+            adminPassword = password;
+
+            fetch(`${API_BASE}/admin/status`, {
+                method: 'GET',
+                headers: {'X-Admin-Password': adminPassword}
+            }).then(r => r.json()).then(data => {
+                if (data.success || data.success !== false) {
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('adminContainer').classList.remove('hidden');
+                    refreshData();
+                } else {
+                    alert('密码错误');
+                }
+            }).catch(() => {
+                // 尝试获取列表
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('adminContainer').classList.remove('hidden');
+                refreshData();
+            });
+        }
+
+        function refreshData() {
+            // 获取状态
+            fetch(`${API_BASE}/admin/status`, {
+                method: 'GET',
+                headers: {'X-Admin-Password': adminPassword}
+            }).then(r => r.json()).then(data => {
+                if (data.success === false) {
+                    alert('验证失败');
+                    return;
+                }
+
+                document.getElementById('pendingCount').textContent = data.pending_count || 0;
+                document.getElementById('activeCount').textContent = data.active_count || 0;
+                isEmergencyStop = data.emergency_stop;
+
+                const statusEl = document.getElementById('systemStatus');
+                const alertEl = document.getElementById('statusAlert');
+
+                if (data.emergency_stop) {
+                    statusEl.textContent = '已终止';
+                    statusEl.parentElement.querySelector('.stat-icon').textContent = '🛑';
+                    alertEl.className = 'alert-box';
+                    alertEl.innerHTML = '<span>⚠️</span><span>服务已紧急终止，所有访问已关闭</span>';
+                } else {
+                    statusEl.textContent = '正常';
+                    alertEl.className = 'alert-box success';
+                    alertEl.innerHTML = '<span>✅</span><span>服务运行正常</span>';
+                }
+            });
+
+            // 获取待审批列表
+            fetch(`${API_BASE}/admin/pending-list`, {
+                method: 'GET',
+                headers: {'X-Admin-Password': adminPassword}
+            }).then(r => r.json()).then(data => {
+                if (data.success === false) return;
+
+                const listEl = document.getElementById('pendingList');
+
+                if (!data.list || data.list.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <p>暂无待审批的申请</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                listEl.innerHTML = data.list.map(item => `
+                    <div class="pending-item">
+                        <div class="pending-header">
+                            <span class="pending-email">${item.email}</span>
+                            <span class="pending-code">${item.request_code}</span>
+                        </div>
+                        <div class="pending-info">
+                            <span class="info-item">📱 ${item.device}</span>
+                            <span class="info-item">🌐 ${item.ip}</span>
+                            <span class="info-item">⏰ ${item.time}</span>
+                        </div>
+                        <div class="pending-actions">
+                            <button class="btn btn-danger btn-small" onclick="rejectRequest('${item.request_code}')">❌ 拒绝</button>
+                            <button class="btn btn-success btn-small" onclick="approveRequest('${item.request_code}')">✅ 批准</button>
+                        </div>
+                    </div>
+                `).join('');
+            });
+        }
+
+        async function approveRequest(requestCode) {
+            if (!confirm('确定批准此申请吗？访问码将自动发送至用户邮箱。')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/approve`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        admin_password: adminPassword,
+                        request_code: requestCode
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('已批准！访问码已发送至用户邮箱');
+                    refreshData();
+                } else {
+                    alert('操作失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('请求失败: ' + error.message);
+            }
+        }
+
+        async function rejectRequest(requestCode) {
+            if (!confirm('确定拒绝此申请吗？')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/reject`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        admin_password: adminPassword,
+                        request_code: requestCode
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('已拒绝');
+                    refreshData();
+                } else {
+                    alert('操作失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('请求失败: ' + error.message);
+            }
+        }
+
+        async function emergencyStop() {
+            if (!confirm('确定要紧急终止所有访问吗？此操作将关闭所有外部访问。')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/emergency-stop`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password: adminPassword})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('所有访问已终止');
+                    refreshData();
+                } else {
+                    alert('操作失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('请求失败: ' + error.message);
+            }
+        }
+
+        async function resumeService() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/resume`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password: adminPassword})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('服务已恢复');
+                    refreshData();
+                } else {
+                    alert('操作失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('请求失败: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
