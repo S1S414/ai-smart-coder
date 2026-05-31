@@ -1,6 +1,6 @@
 ---
 title: AI智能代码助手
-emoji: ''
+emoji: 🚀
 colorFrom: blue
 colorTo: purple
 sdk: docker
