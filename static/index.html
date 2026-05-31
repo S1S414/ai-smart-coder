@@ -929,6 +929,8 @@
 
         // 页面加载时检查状态
         document.addEventListener('DOMContentLoaded', function() {
+            // 首次加载用 header 方式获取 captcha_id（兼容 HF iframe）
+            refreshCaptcha();
             // 检查是否已有有效访问码
             if (accessCode) {
                 fetch(`${API_BASE}/auth/use-access-code`, {
