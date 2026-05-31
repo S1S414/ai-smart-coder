@@ -24,6 +24,8 @@ from PIL import Image, ImageDraw, ImageFont
 from dotenv import load_dotenv
 load_dotenv()
 
+os.makedirs('static', exist_ok=True)
+
 app = Flask(__name__, static_folder='static')
 app.secret_key = os.urandom(24)
 CORS(app, supports_credentials=True)
@@ -36,18 +38,18 @@ try:
         LOCKOUT_DURATION, ACCESS_CODE_EXPIRY, LOG_FILE, STRICT_MODE
     )
 except ImportError:
-    ADMIN_EMAIL = "1993285394@qq.com"
-    SMTP_HOST = "smtp.qq.com"
-    SMTP_PORT = 465
-    SMTP_USER = "1993285394@qq.com"
-    SMTP_PASSWORD = "khqaepslbppodehj"
-    ACCESS_PASSWORD = "ai2026code"
-    EMERGENCY_PASSWORD = "Frede2026safe"
-    MAX_LOGIN_ATTEMPTS = 3
-    LOCKOUT_DURATION = 300
-    ACCESS_CODE_EXPIRY = 3600
-    LOG_FILE = "access_logs.txt"
-    STRICT_MODE = True
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "1993285394@qq.com")
+    SMTP_HOST = os.getenv("SMTP_HOST", "smtp.qq.com")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
+    SMTP_USER = os.getenv("SMTP_USER", "1993285394@qq.com")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+    ACCESS_PASSWORD = os.getenv("ACCESS_PASSWORD", "ai2026code")
+    EMERGENCY_PASSWORD = os.getenv("EMERGENCY_PASSWORD", "Frede2026safe")
+    MAX_LOGIN_ATTEMPTS = int(os.getenv("MAX_LOGIN_ATTEMPTS", "3"))
+    LOCKOUT_DURATION = int(os.getenv("LOCKOUT_DURATION", "300"))
+    ACCESS_CODE_EXPIRY = int(os.getenv("ACCESS_CODE_EXPIRY", "3600"))
+    LOG_FILE = os.getenv("LOG_FILE", "access_logs.txt")
+    STRICT_MODE = os.getenv("STRICT_MODE", "True").lower() == "true"
 
 # ============ 数据存储 ============
 pending_requests = {}      # 待审批请求 {email_code: {email, device, ip, time, email_verified}}
@@ -624,8 +626,6 @@ def call_deepseek(model, messages, max_tokens=500, temperature=0.3):
     return result
 
 if __name__ == '__main__':
-    os.makedirs('static', exist_ok=True)
-    # 端口配置：优先读取环境变量，默认5001
     FLASK_PORT = int(os.getenv('FLASK_PORT', 5001))
     print("=" * 50)
     print("🤖 AI代码助手启动中...")
