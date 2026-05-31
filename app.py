@@ -244,6 +244,14 @@ def send_email_code():
     if sent:
         log_access("EMAIL_CODE_SENT", get_client_ip(), f"邮箱:{email}")
         return jsonify({'success': True, 'message': '验证码已发送到您的邮箱'})
+    elif not SMTP_PASSWORD:
+        # HF 环境无 SMTP 配置，直接返回验证码（仅 demo 用途）
+        log_access("EMAIL_CODE_DEMO", get_client_ip(), f"邮箱:{email} code:{email_code}")
+        return jsonify({
+            'success': True,
+            'message': f'[Demo模式] 验证码已生成，请在下方输入: {email_code}',
+            'demo_code': email_code
+        })
     else:
         return jsonify({'success': False, 'error': f'邮件发送失败: {err_msg}'}), 500
 

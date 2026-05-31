@@ -1207,6 +1207,11 @@
                     userEmail = email;
                     document.getElementById('displayEmail').textContent = email;
                     showStep2();
+                    // Demo 模式：自动填入验证码
+                    if (data.demo_code) {
+                        document.getElementById('emailCode').value = data.demo_code;
+                        alert(data.message);
+                    }
                 } else {
                     alert(data.error);
                     refreshCaptcha();
