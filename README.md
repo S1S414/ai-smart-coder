@@ -1,3 +1,12 @@
+---
+title: AI智能代码助手
+emoji: 🤖
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # 项目一：智能代码助手 (Smart Code Assistant)
 
 ---
