@@ -185,8 +185,9 @@ def get_captcha():
         'type': 'captcha'
     }
     
+    # captcha_id 通过 header 返回，避免 iframe 跨域 cookie 丢失
     response = send_file(buffer, mimetype='image/png')
-    response.set_cookie('captcha_id', captcha_id, max_age=300)
+    response.headers['X-Captcha-Id'] = captcha_id
     return response
 
 @app.route('/api/auth/send-email-code', methods=['POST'])
@@ -198,7 +199,7 @@ def send_email_code():
     captcha_code = data.get('captcha', '').upper()
     email = data.get('email', '')
     device = data.get('device', '未知设备')
-    captcha_id = request.cookies.get('captcha_id')
+    captcha_id = data.get('captcha_id', '') or request.cookies.get('captcha_id', '')
     
     # 验证图形验证码
     if not captcha_id or captcha_id not in email_codes:

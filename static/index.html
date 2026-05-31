@@ -1121,8 +1121,13 @@
             return true;
         }
 
-        function refreshCaptcha() {
-            document.getElementById('captchaImg').src = '/api/captcha?' + Date.now();
+        let currentCaptchaId = '';
+        
+        async function refreshCaptcha() {
+            const response = await fetch('/api/captcha?' + Date.now());
+            currentCaptchaId = response.headers.get('X-Captcha-Id') || '';
+            const blob = await response.blob();
+            document.getElementById('captchaImg').src = URL.createObjectURL(blob);
         }
 
         function showStep1() {
@@ -1191,7 +1196,7 @@
                 const response = await fetch(`${API_BASE}/auth/send-email-code`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({captcha, email, device})
+                    body: JSON.stringify({captcha, captcha_id: currentCaptchaId, email, device})
                 });
 
                 const data = await response.json();
