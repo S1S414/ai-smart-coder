@@ -1236,11 +1236,24 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    requestCode = data.request_code;
-                    localStorage.setItem('requestCode', requestCode);
-                    localStorage.setItem('requestEmail', userEmail);
-                    document.getElementById('requestCodeDisplay').textContent = requestCode;
-                    showStep3();
+                    if (data.need_admin) {
+                        // 正常流程：等待管理员审批
+                        requestCode = data.request_code;
+                        localStorage.setItem('requestCode', requestCode);
+                        localStorage.setItem('requestEmail', userEmail);
+                        document.getElementById('requestCodeDisplay').textContent = requestCode;
+                        showStep3();
+                    } else {
+                        // 自动批准，直接进入
+                        accessCode = data.access_code;
+                        localStorage.setItem('accessCode', accessCode);
+                        localStorage.setItem('userEmail', userEmail);
+                        alert(data.message);
+                        document.getElementById('authOverlay').classList.add('hidden');
+                        document.getElementById('mainApp').classList.remove('hidden');
+                        updateUserDisplay();
+                        loadHistory();
+                    }
                 } else {
                     alert(data.error);
                 }

@@ -75,24 +75,22 @@ def log_access(action, ip, details=""):
         pass
 
 def send_email(subject, content):
-    """发送邮件"""
+    """发送邮件给管理员，返回 (success, error_msg)"""
     if not SMTP_PASSWORD or SMTP_PASSWORD == "你的QQ邮箱授权码":
-        print(f"邮件未发送（SMTP未配置）: {subject}")
-        return False
+        return False, "SMTP密码未配置"
     try:
         msg = MIMEMultipart()
         msg['From'] = SMTP_USER
         msg['To'] = ADMIN_EMAIL
         msg['Subject'] = subject
         msg.attach(MIMEText(content, 'html', 'utf-8'))
-        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(SMTP_USER, ADMIN_EMAIL, msg.as_string())
-        print(f"邮件已发送: {subject}")
-        return True
+        return True, ""
     except Exception as e:
         print(f"邮件发送失败: {e}")
-        return False
+        return False, str(e)[:100]
 
 def send_email_to_user(to_email, subject, content):
     """发送邮件给用户，返回 (success, error_msg)"""
@@ -231,7 +229,7 @@ def send_email_code():
         'type': 'email'
     }
     
-    # 发送邮件
+    # 发送邮件（失败则自动降级为页面展示，不阻塞流程）
     sent, err_msg = send_email_to_user(email, "AI代码助手 - 邮箱验证码",
         f"""
         <h2>您的验证码</h2>
@@ -244,16 +242,14 @@ def send_email_code():
     if sent:
         log_access("EMAIL_CODE_SENT", get_client_ip(), f"邮箱:{email}")
         return jsonify({'success': True, 'message': '验证码已发送到您的邮箱'})
-    elif not SMTP_PASSWORD:
-        # HF 环境无 SMTP 配置，直接返回验证码（仅 demo 用途）
-        log_access("EMAIL_CODE_DEMO", get_client_ip(), f"邮箱:{email} code:{email_code}")
+    else:
+        # 邮件发送失败，自动降级：验证码直接展示在页面
+        log_access("EMAIL_CODE_FALLBACK", get_client_ip(), f"邮箱:{email} reason:{err_msg}")
         return jsonify({
             'success': True,
-            'message': f'[Demo模式] 验证码已生成，请在下方输入: {email_code}',
+            'message': f'邮件发送失败({err_msg})，验证码已展示在下方',
             'demo_code': email_code
         })
-    else:
-        return jsonify({'success': False, 'error': f'邮件发送失败: {err_msg}'}), 500
 
 @app.route('/api/auth/request-access', methods=['POST'])
 def request_access():
@@ -296,8 +292,8 @@ def request_access():
     
     log_access("ACCESS_REQUEST", ip, f"邮箱:{email}")
     
-    # 发送邮件给管理员
-    send_email("📋 AI代码助手 - 新访问申请",
+    # 发送邮件给管理员（失败则自动批准，不阻塞流程）
+    admin_notified, _ = send_email("📋 AI代码助手 - 新访问申请",
         f"""
         <h2>有人申请访问你的AI代码助手</h2>
         <p><b>邮箱:</b> {email}</p>
@@ -311,11 +307,31 @@ def request_access():
         """
     )
     
-    return jsonify({
-        'success': True,
-        'message': '申请已提交，请等待管理员审批',
-        'request_code': request_code
-    })
+    if admin_notified:
+        # 正常流程：等待管理员审批
+        return jsonify({
+            'success': True,
+            'message': '申请已提交，请等待管理员审批',
+            'request_code': request_code,
+            'need_admin': True
+        })
+    else:
+        # 邮件发送失败，自动批准
+        del pending_requests[request_code]
+        access_code = generate_access_code()
+        access_codes[access_code] = {
+            'email': email,
+            'device': device,
+            'ip': ip,
+            'expires': time.time() + ACCESS_CODE_EXPIRY
+        }
+        log_access("AUTO_APPROVED", ip, f"邮箱:{email} (邮件不可用，自动批准)")
+        return jsonify({
+            'success': True,
+            'message': f'邮件通知失败，已自动批准！您的访问码: {access_code}',
+            'access_code': access_code,
+            'need_admin': False
+        })
 
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
@@ -436,7 +452,7 @@ def emergency_stop():
     
     log_access("EMERGENCY_STOP", "N/A", "所有访问已终止")
     
-    send_email("🛑 AI代码助手 - 紧急终止",
+    sent, _ = send_email("🛑 AI代码助手 - 紧急终止",
         f"""
         <h2>紧急通知</h2>
         <p>管理员已启动紧急终止程序</p>
