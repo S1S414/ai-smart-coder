@@ -95,22 +95,28 @@ def send_email(subject, content):
         return False
 
 def send_email_to_user(to_email, subject, content):
-    """发送邮件给用户"""
+    """发送邮件给用户，返回 (success, error_msg)"""
     if not SMTP_PASSWORD or SMTP_PASSWORD == "你的QQ邮箱授权码":
-        return False
+        return False, "SMTP密码未配置"
     try:
         msg = MIMEMultipart()
         msg['From'] = SMTP_USER
         msg['To'] = to_email
         msg['Subject'] = subject
         msg.attach(MIMEText(content, 'html', 'utf-8'))
-        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(SMTP_USER, to_email, msg.as_string())
-        return True
+        return True, ""
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"SMTP认证失败: {e}")
+        return False, f"SMTP认证失败，请检查邮箱授权码: {str(e)[:100]}"
+    except smtplib.SMTPConnectError as e:
+        print(f"SMTP连接失败: {e}")
+        return False, f"无法连接SMTP服务器（HF海外服务器可能无法访问QQ邮箱）: {str(e)[:100]}"
     except Exception as e:
         print(f"邮件发送失败: {e}")
-        return False
+        return False, f"邮件发送异常: {str(e)[:150]}"
 
 def generate_code(length=6):
     """生成随机验证码"""
@@ -226,7 +232,7 @@ def send_email_code():
     }
     
     # 发送邮件
-    sent = send_email_to_user(email, "AI代码助手 - 邮箱验证码",
+    sent, err_msg = send_email_to_user(email, "AI代码助手 - 邮箱验证码",
         f"""
         <h2>您的验证码</h2>
         <p style="font-size:24px;font-weight:bold;color:#7C3AED;">{email_code}</p>
@@ -239,7 +245,7 @@ def send_email_code():
         log_access("EMAIL_CODE_SENT", get_client_ip(), f"邮箱:{email}")
         return jsonify({'success': True, 'message': '验证码已发送到您的邮箱'})
     else:
-        return jsonify({'success': False, 'error': '邮件发送失败，请稍后重试'}), 500
+        return jsonify({'success': False, 'error': f'邮件发送失败: {err_msg}'}), 500
 
 @app.route('/api/auth/request-access', methods=['POST'])
 def request_access():
@@ -372,7 +378,7 @@ def approve_request():
     log_access("APPROVED", info['ip'], f"邮箱:{info['email']}")
     
     # 发送访问码给用户
-    send_email_to_user(info['email'], "✅ AI代码助手 - 访问已批准",
+    sent, _ = send_email_to_user(info['email'], "✅ AI代码助手 - 访问已批准",
         f"""
         <h2>您的访问申请已批准！</h2>
         <p>您的访问权限已获得批准，有效期 {ACCESS_CODE_EXPIRY // 60} 分钟。</p>
